@@ -1,0 +1,101 @@
+### Arquivo para o HTTP Client do IntelliJ / extensão REST Client do VS Code.
+### Suba a aplicação com ./mvnw quarkus:dev e clique em "Run" em cada requisição.
+
+@base = http://localhost:8080
+
+### ===================== AUTORES =====================
+
+### 200 - lista todos
+GET {{base}}/autores
+
+### 200 - busca por id
+GET {{base}}/autores/1
+
+### 404 - id inexistente
+GET {{base}}/autores/999
+
+### 201 - cria (veja o header Location na resposta)
+POST {{base}}/autores
+Content-Type: application/json
+
+{"nome": "Carlos Drummond", "email": "carlos@literatura.com"}
+
+### 400 - dados inválidos
+POST {{base}}/autores
+Content-Type: application/json
+
+{"nome": "", "email": "nao-e-email"}
+
+### 409 - email já cadastrado
+POST {{base}}/autores
+Content-Type: application/json
+
+{"nome": "Outro Machado", "email": "machado@literatura.com"}
+
+### 415 - Content-Type errado
+POST {{base}}/autores
+Content-Type: text/plain
+
+nome=Carlos
+
+### 200 - PUT substitui tudo (todos os campos obrigatórios)
+PUT {{base}}/autores/1
+Content-Type: application/json
+
+{"nome": "Machado de Assis", "email": "machado.assis@literatura.com"}
+
+### 400 - PUT sem todos os campos
+PUT {{base}}/autores/1
+Content-Type: application/json
+
+{"nome": "Só o nome"}
+
+### 200 - PATCH altera só o que foi enviado
+PATCH {{base}}/autores/2
+Content-Type: application/json
+
+{"nome": "Clarice Lispector de Souza"}
+
+### 204 - remove (sem corpo na resposta)
+DELETE {{base}}/autores/2
+
+### 404 - remover de novo
+DELETE {{base}}/autores/2
+
+### ===================== LIVROS =====================
+
+GET {{base}}/livros
+
+###
+POST {{base}}/livros
+Content-Type: application/json
+
+{"titulo": "Sapiens", "isbn": "978-85-254-6100-1", "anoPublicacao": 2011}
+
+###
+PATCH {{base}}/livros/1
+Content-Type: application/json
+
+{"anoPublicacao": 1900}
+
+###
+DELETE {{base}}/livros/2
+
+### ===================== GENEROS =====================
+
+GET {{base}}/generos
+
+###
+POST {{base}}/generos
+Content-Type: application/json
+
+{"nome": "Aventura", "descricao": "Histórias de exploração e descobertas"}
+
+###
+PATCH {{base}}/generos/1
+Content-Type: application/json
+
+{"descricao": "Romances e narrativas de relações humanas"}
+
+###
+DELETE {{base}}/generos/2
