@@ -3,58 +3,53 @@ package br.com.ada.lms.servico;
 import br.com.ada.lms.excecao.ConflitoException;
 import br.com.ada.lms.excecao.RecursoNaoEncontradoException;
 import br.com.ada.lms.modelo.Autor;
+import br.com.ada.lms.repositorio.AutorRepository;
 import br.com.ada.lms.rest.dto.AutorRequest;
+import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Regras de negócio + "banco de dados" em memória (um Map).
- * Os dados somem quando a aplicação reinicia; persistência real fica para as próximas aulas.
+ * Regras de negócio. Os dados agora ficam no PostgreSQL: quem conversa com o banco é o AutorRepository.
  *
- * @ApplicationScoped: o Quarkus cria UMA instância e a injeta em quem pedir.
- * ConcurrentHashMap/AtomicLong porque várias requisições podem chegar ao mesmo tempo.
+ * @Transactional: tudo que o método faz no banco é confirmado (commit) junto no final,
+ * ou desfeito (rollback) se uma exceção for lançada. Obrigatório para gravar/alterar/remover.
+ *
+ * Repare que no PUT/PATCH não chamamos nenhum "update": a entidade buscada está "gerenciada"
+ * pelo Hibernate, que detecta os setters e gera o UPDATE sozinho no commit (dirty checking).
  */
 @ApplicationScoped
 public class AutorService {
 
-    private final Map<Long, Autor> autores = new ConcurrentHashMap<>();
-    private final AtomicLong sequencia = new AtomicLong();
+    private final AutorRepository repository;
     private final ValidadorPatch validadorPatch;
 
-    public AutorService(ValidadorPatch validadorPatch) {
+    public AutorService(AutorRepository repository, ValidadorPatch validadorPatch) {
+        this.repository = repository;
         this.validadorPatch = validadorPatch;
-        // alguns dados iniciais para testar o GET logo de cara
-        criar(new AutorRequest("Machado de Assis", "machado@literatura.com"));
-        criar(new AutorRequest("Clarice Lispector", "clarice@literatura.com"));
     }
 
     public List<Autor> listar() {
-        return autores.values().stream()
-                .sorted(Comparator.comparing(Autor::getId))
-                .toList();
+        return repository.listAll(Sort.by("id"));
     }
 
     public Autor buscar(Long id) {
-        Autor autor = autores.get(id);
-        if (autor == null) {
-            throw new RecursoNaoEncontradoException("Autor", id);
-        }
-        return autor;
+        return repository.findByIdOptional(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Autor", id));
     }
 
+    @Transactional
     public Autor criar(AutorRequest dados) {
         verificarEmailDisponivel(dados.email(), null);
-        Autor autor = new Autor(sequencia.incrementAndGet(), dados.nome(), dados.email());
-        autores.put(autor.getId(), autor);
+        Autor autor = new Autor(dados.nome(), dados.email());
+        repository.persist(autor); // INSERT; o id é preenchido pelo banco
         return autor;
     }
 
     /** PUT: substitui TODOS os campos do recurso. */
+    @Transactional
     public Autor atualizar(Long id, AutorRequest dados) {
         Autor autor = buscar(id);
         verificarEmailDisponivel(dados.email(), id);
@@ -64,6 +59,7 @@ public class AutorService {
     }
 
     /** PATCH: altera somente os campos enviados (os que vierem null são mantidos). */
+    @Transactional
     public Autor atualizarParcialmente(Long id, AutorRequest dados) {
         Autor autor = buscar(id);
         validadorPatch.validarCamposInformados(dados);
@@ -77,16 +73,15 @@ public class AutorService {
         return autor;
     }
 
+    @Transactional
     public void remover(Long id) {
-        if (autores.remove(id) == null) {
+        if (!repository.deleteById(id)) {
             throw new RecursoNaoEncontradoException("Autor", id);
         }
     }
 
     private void verificarEmailDisponivel(String email, Long idAtual) {
-        boolean emUso = autores.values().stream()
-                .anyMatch(a -> a.getEmail().equalsIgnoreCase(email) && !a.getId().equals(idAtual));
-        if (emUso) {
+        if (repository.emailEmUso(email, idAtual)) {
             throw new ConflitoException("Já existe um autor com o email " + email + ".");
         }
     }

@@ -1,18 +1,34 @@
 package br.com.ada.lms.modelo;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
 /**
  * Entidade de domínio que representa um autor de livros.
  * O Jackson usa os getters para gerar o JSON de resposta:
  * {"id": 1, "nome": "...", "email": "..."}
  */
+@Entity
 public class Autor {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // id gerado pelo banco (coluna identity)
     private Long id;
+
+    @Column(nullable = false)
     private String nome;
+
+    @Column(nullable = false, unique = true)
     private String email;
 
-    public Autor(Long id, String nome, String email) {
-        this.id = id;
+    /** Construtor vazio exigido pelo JPA (o Hibernate cria o objeto e depois preenche os campos). */
+    protected Autor() {
+    }
+
+    public Autor(String nome, String email) {
         this.nome = nome;
         this.email = email;
     }

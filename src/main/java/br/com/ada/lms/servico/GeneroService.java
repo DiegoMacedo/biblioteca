@@ -3,50 +3,44 @@ package br.com.ada.lms.servico;
 import br.com.ada.lms.excecao.ConflitoException;
 import br.com.ada.lms.excecao.RecursoNaoEncontradoException;
 import br.com.ada.lms.modelo.Genero;
+import br.com.ada.lms.repositorio.GeneroRepository;
 import br.com.ada.lms.rest.dto.GeneroRequest;
+import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /** Mesmo padrão do AutorService; aqui a regra de unicidade é pelo nome do gênero. */
 @ApplicationScoped
 public class GeneroService {
 
-    private final Map<Long, Genero> generos = new ConcurrentHashMap<>();
-    private final AtomicLong sequencia = new AtomicLong();
+    private final GeneroRepository repository;
     private final ValidadorPatch validadorPatch;
 
-    public GeneroService(ValidadorPatch validadorPatch) {
+    public GeneroService(GeneroRepository repository, ValidadorPatch validadorPatch) {
+        this.repository = repository;
         this.validadorPatch = validadorPatch;
-        criar(new GeneroRequest("Romance", "Narrativas ficcionais centradas em relações e conflitos humanos"));
-        criar(new GeneroRequest("Ficção científica", "Histórias sobre tecnologia, espaço e futuros imaginados"));
     }
 
     public List<Genero> listar() {
-        return generos.values().stream()
-                .sorted(Comparator.comparing(Genero::getId))
-                .toList();
+        return repository.listAll(Sort.by("id"));
     }
 
     public Genero buscar(Long id) {
-        Genero genero = generos.get(id);
-        if (genero == null) {
-            throw new RecursoNaoEncontradoException("Gênero", id);
-        }
-        return genero;
+        return repository.findByIdOptional(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Gênero", id));
     }
 
+    @Transactional
     public Genero criar(GeneroRequest dados) {
         verificarNomeDisponivel(dados.nome(), null);
-        Genero genero = new Genero(sequencia.incrementAndGet(), dados.nome(), dados.descricao());
-        generos.put(genero.getId(), genero);
+        Genero genero = new Genero(dados.nome(), dados.descricao());
+        repository.persist(genero);
         return genero;
     }
 
+    @Transactional
     public Genero atualizar(Long id, GeneroRequest dados) {
         Genero genero = buscar(id);
         verificarNomeDisponivel(dados.nome(), id);
@@ -55,6 +49,7 @@ public class GeneroService {
         return genero;
     }
 
+    @Transactional
     public Genero atualizarParcialmente(Long id, GeneroRequest dados) {
         Genero genero = buscar(id);
         validadorPatch.validarCamposInformados(dados);
@@ -68,16 +63,15 @@ public class GeneroService {
         return genero;
     }
 
+    @Transactional
     public void remover(Long id) {
-        if (generos.remove(id) == null) {
+        if (!repository.deleteById(id)) {
             throw new RecursoNaoEncontradoException("Gênero", id);
         }
     }
 
     private void verificarNomeDisponivel(String nome, Long idAtual) {
-        boolean emUso = generos.values().stream()
-                .anyMatch(g -> g.getNome().equalsIgnoreCase(nome) && !g.getId().equals(idAtual));
-        if (emUso) {
+        if (repository.nomeEmUso(nome, idAtual)) {
             throw new ConflitoException("Já existe um gênero com o nome " + nome + ".");
         }
     }

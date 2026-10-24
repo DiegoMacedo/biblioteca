@@ -1,0 +1,22 @@
+# Banco PostgreSQL para a aplicação. Suba com: docker compose up -d
+services:
+  postgres:
+    image: postgres:17
+    container_name: biblioteca-postgres
+    environment:
+      POSTGRES_DB: biblioteca
+      POSTGRES_USER: biblioteca
+      POSTGRES_PASSWORD: biblioteca
+    ports:
+      - "5432:5432"
+    volumes:
+      # os dados sobrevivem a "docker compose down" (use "down -v" para apagar)
+      - biblioteca-dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U biblioteca -d biblioteca"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  biblioteca-dados:

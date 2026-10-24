@@ -1,21 +1,23 @@
 # Biblioteca - Gerenciador de Acervo (Quarkus + REST)
 
 Projeto didático: uma API REST para gerenciar uma biblioteca, com CRUD de **Autores**, **Livros** e **Gêneros**.
-
-Os dados ficam **em memória** (um `Map` dentro de cada service) para o foco ficar em HTTP/REST.
-Ao reiniciar a aplicação, tudo volta aos dados iniciais.
+Os dados ficam persistidos no **PostgreSQL**, usando JPA/Hibernate com Panache.
 
 ## Como rodar
 
 ```bash
+docker compose up -d    # sobe o PostgreSQL (veja docker-compose.yml)
 ./mvnw quarkus:dev      # modo dev com live reload
-./mvnw test             # roda os testes
+./mvnw test             # roda os testes (usa um PostgreSQL descartável via Dev Services)
 ```
 
 - API: http://localhost:8080/autores
 - Swagger UI (testar pelo navegador): http://localhost:8080/q/swagger-ui
 - Dev UI: http://localhost:8080/q/dev-ui
 - Requisições prontas: `requisicoes.http` (IntelliJ ou VS Code REST Client)
+
+O banco (`biblioteca`) é criado e populado na primeira execução: o Hibernate cria as tabelas a partir
+das entidades e roda `src/main/resources/import.sql` com os dados iniciais.
 
 ## Endpoints
 
@@ -60,15 +62,16 @@ Erros de validação (`@Valid`) usam o formato padrão do Quarkus, com a lista `
 
 ```
 src/main/java/br/com/ada/lms
-├── modelo/      Autor, Livro, Genero             -> entidades (o que é devolvido em JSON)
+├── modelo/      Autor, Livro, Genero             -> entidades JPA (tabelas do banco)
+├── repositorio/ *Repository                      -> acesso ao banco com Panache
 ├── rest/        *Resource                        -> rotas HTTP (camada fina)
 │   ├── dto/     *Request, ErroDTO                -> o que entra e o que sai em caso de erro
 │   └── ApiExceptionMapper                        -> exceção -> resposta HTTP 4xx
-├── servico/     *Service, ValidadorPatch         -> regras de negócio + armazenamento em memória
+├── servico/     *Service, ValidadorPatch         -> regras de negócio + transações
 └── excecao/     ApiException e subclasses        -> 400, 404, 409
 ```
 
-Fluxo de uma requisição: **Resource** → **Service** → (lança exceção?) → **ExceptionMapper** → resposta.
+Fluxo de uma requisição: **Resource** → **Service** → **Repository** → PostgreSQL.
 
 ## Pontos para discutir em aula
 
