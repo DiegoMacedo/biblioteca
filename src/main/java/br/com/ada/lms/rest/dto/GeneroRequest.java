@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 
 public record GeneroRequest(
         @NotBlank(message = "nome é obrigatório")
+        @Size(min = 3, max = 100, message = "nome deve ter entre 3 e 100 caracteres")
         String nome,
 
         @Size(max = 500, message = "descricao deve ter no máximo 500 caracteres")

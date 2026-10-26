@@ -18,10 +18,10 @@ public class Autor {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // id gerado pelo banco (coluna identity)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String nome;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 150)
     private String email;
 
     /** Construtor vazio exigido pelo JPA (o Hibernate cria o objeto e depois preenche os campos). */

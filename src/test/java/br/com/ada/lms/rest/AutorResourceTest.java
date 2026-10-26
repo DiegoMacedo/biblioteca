@@ -188,4 +188,43 @@ class AutorResourceTest {
         given().when().get("/autores/" + id).then().statusCode(404);
         given().when().delete("/autores/" + id).then().statusCode(404);
     }
+
+    @Test
+    void nomeMuitoCurtoRetorna400() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {"nome": "Al", "email": "al@literatura.com"}
+                        """)
+                .when().post("/autores")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void emailMuitoLongoRetorna400() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {"nome": "Longo", "email": "%s@literatura.com"}
+                        """.formatted("a".repeat(150)))
+                .when().post("/autores")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void patchComNomeMuitoLongoRetorna400() {
+        Integer id = criarAutor("Patch Longo", "patch-longo@literatura.com");
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {"nome": "%s"}
+                        """.formatted("x".repeat(101)))
+                .when().patch("/autores/" + id)
+                .then()
+                .statusCode(400)
+                .body("erro", equalTo("nome deve ter entre 3 e 100 caracteres"));
+    }
 }

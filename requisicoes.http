@@ -81,6 +81,23 @@ Content-Type: application/json
 ###
 DELETE {{base}}/livros/2
 
+### ===================== RELACIONAMENTOS DO LIVRO =====================
+
+### 200 - define/troca o gênero principal (livro 1, gênero 1)
+PUT {{base}}/livros/1/genero/1
+
+### 204 - remove o gênero do livro
+DELETE {{base}}/livros/1/genero
+
+### 200 - adiciona um autor ao livro (livro 1, autor 1)
+POST {{base}}/livros/1/autores/1
+
+### 409 - autor já associado
+POST {{base}}/livros/1/autores/1
+
+### 204 - remove o autor do livro
+DELETE {{base}}/livros/1/autores/1
+
 ### ===================== GENEROS =====================
 
 GET {{base}}/generos

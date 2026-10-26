@@ -14,7 +14,7 @@ public class Genero {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // id gerado pelo banco (coluna identity)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String nome;
 
     @Column(length = 500)

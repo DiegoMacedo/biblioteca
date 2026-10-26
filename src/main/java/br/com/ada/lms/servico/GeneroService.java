@@ -4,6 +4,7 @@ import br.com.ada.lms.excecao.ConflitoException;
 import br.com.ada.lms.excecao.RecursoNaoEncontradoException;
 import br.com.ada.lms.modelo.Genero;
 import br.com.ada.lms.repositorio.GeneroRepository;
+import br.com.ada.lms.repositorio.LivroRepository;
 import br.com.ada.lms.rest.dto.GeneroRequest;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,10 +18,12 @@ public class GeneroService {
 
     private final GeneroRepository repository;
     private final ValidadorPatch validadorPatch;
+    private final LivroRepository livroRepository;
 
-    public GeneroService(GeneroRepository repository, ValidadorPatch validadorPatch) {
+    public GeneroService(GeneroRepository repository, ValidadorPatch validadorPatch, LivroRepository livroRepository) {
         this.repository = repository;
         this.validadorPatch = validadorPatch;
+        this.livroRepository = livroRepository;
     }
 
     public List<Genero> listar() {
@@ -65,6 +68,10 @@ public class GeneroService {
 
     @Transactional
     public void remover(Long id) {
+        // sem esta checagem o banco recusaria o DELETE (chave estrangeira) e a API devolveria 500
+        if (livroRepository.existeComGenero(id)) {
+            throw new ConflitoException("Gênero com id " + id + " possui livros cadastrados; troque o gênero dos livros antes de removê-lo.");
+        }
         if (!repository.deleteById(id)) {
             throw new RecursoNaoEncontradoException("Gênero", id);
         }

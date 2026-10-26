@@ -61,4 +61,28 @@ class GeneroResourceTest {
                 .then()
                 .statusCode(409);
     }
+
+    @Test
+    void nomeMuitoCurtoRetorna400() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {"nome": "Ab", "descricao": "Curto demais"}
+                        """)
+                .when().post("/generos")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void nomeMuitoLongoRetorna400() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {"nome": "%s", "descricao": "Longo demais"}
+                        """.formatted("x".repeat(101)))
+                .when().post("/generos")
+                .then()
+                .statusCode(400);
+    }
 }

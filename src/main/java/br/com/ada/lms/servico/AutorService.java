@@ -4,6 +4,7 @@ import br.com.ada.lms.excecao.ConflitoException;
 import br.com.ada.lms.excecao.RecursoNaoEncontradoException;
 import br.com.ada.lms.modelo.Autor;
 import br.com.ada.lms.repositorio.AutorRepository;
+import br.com.ada.lms.repositorio.LivroRepository;
 import br.com.ada.lms.rest.dto.AutorRequest;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,10 +26,12 @@ public class AutorService {
 
     private final AutorRepository repository;
     private final ValidadorPatch validadorPatch;
+    private final LivroRepository livroRepository;
 
-    public AutorService(AutorRepository repository, ValidadorPatch validadorPatch) {
+    public AutorService(AutorRepository repository, ValidadorPatch validadorPatch, LivroRepository livroRepository) {
         this.repository = repository;
         this.validadorPatch = validadorPatch;
+        this.livroRepository = livroRepository;
     }
 
     public List<Autor> listar() {
@@ -75,6 +78,10 @@ public class AutorService {
 
     @Transactional
     public void remover(Long id) {
+        // sem esta checagem o banco recusaria o DELETE (chave estrangeira) e a API devolveria 500
+        if (livroRepository.existeComAutor(id)) {
+            throw new ConflitoException("Autor com id " + id + " possui livros cadastrados; remova o autor dos livros antes de removê-lo.");
+        }
         if (!repository.deleteById(id)) {
             throw new RecursoNaoEncontradoException("Autor", id);
         }

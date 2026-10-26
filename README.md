@@ -3,6 +3,9 @@
 Projeto didático: uma API REST para gerenciar uma biblioteca, com CRUD de **Autores**, **Livros** e **Gêneros**.
 Os dados ficam persistidos no **PostgreSQL**, usando JPA/Hibernate com Panache.
 
+O **Livro** possui relacionamentos: um gênero principal (`@ManyToOne`) e vários autores (`@ManyToMany`).
+Os relacionamentos são gerenciados por endpoints próprios, sem enviar `generoId`/`autorId` no corpo do livro.
+
 ## Como rodar
 
 ```bash
@@ -32,6 +35,20 @@ O mesmo contrato vale para `/autores`, `/livros` e `/generos`:
 | PATCH  | `/autores/{id}`  | altera **só os campos enviados**           | `200 OK`                     | `400`, `404`, `409`  |
 | DELETE | `/autores/{id}`  | remove                                     | `204 No Content`             | `404`                |
 
+### Relacionamentos do livro
+
+| Método | Caminho                             | O que faz                                      | Sucesso | Erros possíveis    |
+|--------|-------------------------------------|------------------------------------------------|---------|--------------------|
+| PUT    | `/livros/{id}/genero/{generoId}`    | define ou troca o gênero principal             | `200`   | `404`              |
+| DELETE | `/livros/{id}/genero`               | remove o gênero do livro                       | `204`   | `404`              |
+| POST   | `/livros/{id}/autores/{autorId}`    | adiciona um autor ao livro                     | `200`   | `404`, `409`       |
+| DELETE | `/livros/{id}/autores/{autorId}`    | remove o autor do livro                        | `204`   | `404`              |
+
+Também há proteção contra exclusões que quebrariam as chaves estrangeiras:
+
+- remover um **gênero** usado por algum livro retorna `409`;
+- remover um **autor** associado a algum livro retorna `409`.
+
 ### Corpo das requisições
 
 ```jsonc
@@ -50,9 +67,9 @@ O mesmo contrato vale para `/autores`, `/livros` e `/generos`:
 | 200    | leitura ou atualização com sucesso (com corpo)                             |
 | 201    | recurso criado; o header `Location` aponta para ele                         |
 | 204    | remoção com sucesso (sem corpo)                                             |
-| 400    | dados inválidos: campo obrigatório vazio, email inválido, ano ≤ 0           |
+| 400    | dados inválidos: campos vazios, email inválido, tamanhos fora do limite, ano ≤ 0 |
 | 404    | o `id` não existe                                                           |
-| 409    | conflito: email (autor), ISBN (livro) ou nome (gênero) já cadastrado        |
+| 409    | conflito: email/ISBN/nome repetido, autor ou gênero ainda vinculado a livro |
 | 415    | `Content-Type` diferente de `application/json`                              |
 
 Erros de negócio voltam como `{"status": 404, "erro": "Autor com id 9 não encontrado(a)."}`.
@@ -85,6 +102,7 @@ Fluxo de uma requisição: **Resource** → **Service** → **Repository** → P
 ## Exercícios sugeridos
 
 - Filtro por query param: `GET /livros?titulo=sapiens`.
-- Associar um autor a um livro (`autorId` em `Livro`) e retornar `400`/`404` se o autor não existir.
-- Associar um gênero a um livro (`generoId` em `Livro`).
-- Impedir remover um autor que possui livros cadastrados (`409`).
+- Paginação: `GET /livros?pagina=0&tamanho=10` com `repository.findAll().page(...)`.
+- Trocar o `drop-and-create` por **Flyway** (`quarkus-flyway`) com um script `V1__criar_tabelas.sql`.
+- Criar um DTO específico para devolver o livro com somente `id` e `nome` do gênero/autor.
+- Evitar o `EAGER` em `Livro.autores` usando `@Transactional` na serialização ou DTOs.

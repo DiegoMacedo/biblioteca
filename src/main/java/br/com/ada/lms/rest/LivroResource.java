@@ -70,4 +70,38 @@ public class LivroResource {
         service.remover(id);
         return Response.noContent().build();
     }
+
+    // ---------- Gênero principal ----------
+
+    /** PUT: define (ou troca) o gênero do livro. Repetir a chamada dá o mesmo resultado (idempotente). */
+    @PUT
+    @Path("/{id}/genero/{generoId}")
+    @Consumes(MediaType.WILDCARD) // sem corpo: aceita requisição sem Content-Type (senão 415)
+    public Livro definirGenero(@PathParam("id") Long id, @PathParam("generoId") Long generoId) {
+        return service.definirGenero(id, generoId);
+    }
+
+    @DELETE
+    @Path("/{id}/genero")
+    public Response removerGenero(@PathParam("id") Long id) {
+        service.removerGenero(id);
+        return Response.noContent().build();
+    }
+
+    // ---------- Autores do livro ----------
+
+    /** POST: adiciona o autor (409 se ele já estiver associado). */
+    @POST
+    @Path("/{id}/autores/{autorId}")
+    @Consumes(MediaType.WILDCARD) // sem corpo: aceita requisição sem Content-Type (senão 415)
+    public Livro adicionarAutor(@PathParam("id") Long id, @PathParam("autorId") Long autorId) {
+        return service.adicionarAutor(id, autorId);
+    }
+
+    @DELETE
+    @Path("/{id}/autores/{autorId}")
+    public Response removerAutor(@PathParam("id") Long id, @PathParam("autorId") Long autorId) {
+        service.removerAutor(id, autorId);
+        return Response.noContent().build();
+    }
 }
